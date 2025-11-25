@@ -697,6 +697,7 @@
         let turn = 1;
         let gameOver = false;
         let waitingForAnswer = false;
+        let isAnimating = false;
 
         // Settings
         let startingTime = 10;
@@ -706,9 +707,11 @@
         let currentTimeLimit = 10;
         let turnsUntilDecrease = 10;
 
-        // Timer
-        let timerInterval = null;
+        // Timer and falling
+        let gameLoopInterval = null;
         let timeRemaining = 0;
+        let lastFallTime = 0;
+        let maxFallY = 0;
 
         // Current quiz
         let currentQuiz = null;
@@ -723,11 +726,10 @@
                     board[y][x] = null;
                 }
             }
-            renderBoard();
         }
 
-        // Render the game board
-        function renderBoard() {
+        // Render the game board with current piece
+        function render() {
             const boardEl = document.getElementById('game-board');
             boardEl.innerHTML = '';
 
@@ -743,26 +745,16 @@
             }
 
             // Render current piece
-            if (currentPiece && !waitingForAnswer) {
-                renderPiece(currentPiece, false);
-            }
-        }
-
-        // Render a piece on the board
-        function renderPiece(piece, isGhost) {
-            const boardEl = document.getElementById('game-board');
-            const cells = boardEl.querySelectorAll('.cell');
-
-            for (let y = 0; y < piece.shape.length; y++) {
-                for (let x = 0; x < piece.shape[y].length; x++) {
-                    if (piece.shape[y][x]) {
-                        const boardY = piece.y + y;
-                        const boardX = piece.x + x;
-                        if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
-                            const index = boardY * BOARD_WIDTH + boardX;
-                            cells[index].classList.add('filled', piece.color);
-                            if (isGhost) {
-                                cells[index].classList.add('ghost');
+            if (currentPiece) {
+                const cells = boardEl.querySelectorAll('.cell');
+                for (let py = 0; py < currentPiece.shape.length; py++) {
+                    for (let px = 0; px < currentPiece.shape[py].length; px++) {
+                        if (currentPiece.shape[py][px]) {
+                            const boardY = currentPiece.y + py;
+                            const boardX = currentPiece.x + px;
+                            if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+                                const index = boardY * BOARD_WIDTH + boardX;
+                                cells[index].classList.add('filled', currentPiece.color);
                             }
                         }
                     }
@@ -807,6 +799,27 @@
             return true;
         }
 
+        // Check if piece can be placed with given shape
+        function canPlaceShape(shape, x, y) {
+            for (let py = 0; py < shape.length; py++) {
+                for (let px = 0; px < shape[py].length; px++) {
+                    if (shape[py][px]) {
+                        const boardX = x + px;
+                        const boardY = y + py;
+
+                        if (boardX < 0 || boardX >= BOARD_WIDTH || boardY >= BOARD_HEIGHT) {
+                            return false;
+                        }
+
+                        if (boardY >= 0 && board[boardY][boardX]) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
         // Place piece on board
         function placePiece(piece) {
             for (let y = 0; y < piece.shape.length; y++) {
@@ -822,95 +835,72 @@
             }
         }
 
-        // Find optimal position for piece (most lines cleared, lowest position)
-        function findOptimalPosition(piece) {
-            let bestScore = -1;
-            let bestPosition = { x: piece.x, y: 0, rotation: 0 };
+        // Find the landing Y for current piece position
+        function findLandingY(piece) {
+            let y = piece.y;
+            while (canPlaceShape(piece.shape, piece.x, y + 1)) {
+                y++;
+            }
+            return y;
+        }
 
-            // Try all rotations
-            let testPiece = { ...piece, shape: piece.shape.map(row => [...row]) };
+        // Find optimal position for piece
+        function findOptimalPosition(piece) {
+            let bestScore = -Infinity;
+            let bestPosition = null;
+
+            let testShape = piece.shape.map(row => [...row]);
 
             for (let rotation = 0; rotation < 4; rotation++) {
-                // Try all x positions
                 for (let x = -2; x < BOARD_WIDTH + 2; x++) {
-                    // Find drop position
                     let y = 0;
-                    while (canPlace(testPiece, x, y + 1)) {
+                    while (canPlaceShape(testShape, x, y + 1)) {
                         y++;
                     }
 
-                    if (canPlace(testPiece, x, y)) {
-                        // Simulate placement and calculate score
-                        const score = calculatePlacementScore(testPiece, x, y);
-                        if (score > bestScore) {
-                            bestScore = score;
+                    if (canPlaceShape(testShape, x, y)) {
+                        const placeScore = calculatePlacementScore(testShape, x, y);
+                        if (placeScore > bestScore) {
+                            bestScore = placeScore;
                             bestPosition = {
                                 x: x,
                                 y: y,
-                                rotation: rotation,
-                                shape: testPiece.shape.map(row => [...row])
+                                shape: testShape.map(row => [...row])
                             };
                         }
                     }
                 }
-
-                // Rotate piece
-                testPiece.shape = rotatePieceShape(testPiece.shape);
+                testShape = rotatePieceShape(testShape);
             }
 
-            return bestPosition;
+            return bestPosition || { x: piece.x, y: findLandingY(piece), shape: piece.shape };
         }
 
-        // Find a suboptimal position (creates holes or gaps)
+        // Find suboptimal position (drop straight down from current position)
         function findSuboptimalPosition(piece) {
-            let positions = [];
-            let testPiece = { ...piece, shape: piece.shape.map(row => [...row]) };
-
-            for (let rotation = 0; rotation < 4; rotation++) {
-                for (let x = -2; x < BOARD_WIDTH + 2; x++) {
-                    let y = 0;
-                    while (canPlace(testPiece, x, y + 1)) {
-                        y++;
-                    }
-
-                    if (canPlace(testPiece, x, y)) {
-                        const score = calculatePlacementScore(testPiece, x, y);
-                        positions.push({
-                            x: x,
-                            y: y,
-                            rotation: rotation,
-                            shape: testPiece.shape.map(row => [...row]),
-                            score: score
-                        });
-                    }
-                }
-                testPiece.shape = rotatePieceShape(testPiece.shape);
-            }
-
-            // Sort by score and pick from the lower half
-            positions.sort((a, b) => a.score - b.score);
-            const suboptimalIndex = Math.floor(Math.random() * Math.min(positions.length, Math.ceil(positions.length / 3)));
-            return positions[suboptimalIndex] || positions[0];
+            return {
+                x: piece.x,
+                y: findLandingY(piece),
+                shape: piece.shape.map(row => [...row])
+            };
         }
 
         // Calculate score for a placement
-        function calculatePlacementScore(piece, x, y) {
-            // Simulate placement
+        function calculatePlacementScore(shape, x, y) {
             const tempBoard = board.map(row => [...row]);
 
-            for (let py = 0; py < piece.shape.length; py++) {
-                for (let px = 0; px < piece.shape[py].length; px++) {
-                    if (piece.shape[py][px]) {
+            for (let py = 0; py < shape.length; py++) {
+                for (let px = 0; px < shape[py].length; px++) {
+                    if (shape[py][px]) {
                         const boardY = y + py;
                         const boardX = x + px;
                         if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
-                            tempBoard[boardY][boardX] = piece.color;
+                            tempBoard[boardY][boardX] = true;
                         }
                     }
                 }
             }
 
-            // Count complete lines
             let completeLines = 0;
             for (let row = 0; row < BOARD_HEIGHT; row++) {
                 if (tempBoard[row].every(cell => cell !== null)) {
@@ -918,7 +908,6 @@
                 }
             }
 
-            // Count holes (empty cells below filled cells)
             let holes = 0;
             for (let col = 0; col < BOARD_WIDTH; col++) {
                 let foundFilled = false;
@@ -931,7 +920,6 @@
                 }
             }
 
-            // Score: prioritize lines, penalize holes, reward lower placement
             return completeLines * 1000 - holes * 100 + y * 10;
         }
 
@@ -960,7 +948,7 @@
                     board.splice(y, 1);
                     board.unshift(Array(BOARD_WIDTH).fill(null));
                     cleared++;
-                    y++; // Check same row again
+                    y++;
                 }
             }
 
@@ -975,15 +963,13 @@
 
         // Check if game is over
         function checkGameOver() {
-            // Check if any cell in top row is filled
-            return board[0].some(cell => cell !== null);
+            return board[0].some(cell => cell !== null) || board[1].some(cell => cell !== null);
         }
 
         // Generate quiz question
         function generateQuiz() {
             const correctVerb = spanishVerbs[Math.floor(Math.random() * spanishVerbs.length)];
 
-            // Get 3 wrong answers
             const wrongAnswers = [];
             while (wrongAnswers.length < 3) {
                 const verb = spanishVerbs[Math.floor(Math.random() * spanishVerbs.length)];
@@ -992,19 +978,16 @@
                 }
             }
 
-            // Shuffle answers
             const answers = [correctVerb.english, ...wrongAnswers];
             for (let i = answers.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [answers[i], answers[j]] = [answers[j], answers[i]];
             }
 
-            correctIndex = answers.indexOf(correctVerb.english);
-
             return {
                 spanish: correctVerb.spanish,
                 answers: answers,
-                correctIndex: correctIndex
+                correctIndex: answers.indexOf(correctVerb.english)
             };
         }
 
@@ -1020,26 +1003,6 @@
             });
 
             currentQuiz = quiz;
-        }
-
-        // Start timer
-        function startTimer() {
-            stopTimer(); // Clear any existing timer first
-            timeRemaining = currentTimeLimit;
-            updateTimerDisplay();
-
-            timerInterval = setInterval(() => {
-                if (gameOver || !waitingForAnswer) {
-                    stopTimer();
-                    return;
-                }
-                timeRemaining -= 0.1;
-                updateTimerDisplay();
-
-                if (timeRemaining <= 0) {
-                    handleTimeout();
-                }
-            }, 100);
         }
 
         // Update timer display
@@ -1059,66 +1022,165 @@
             }
         }
 
-        // Stop timer
-        function stopTimer() {
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
+        // Main game loop
+        function gameLoop() {
+            if (gameOver || isAnimating) return;
+
+            const now = Date.now();
+            const deltaTime = (now - lastFallTime) / 1000;
+
+            // Update timer
+            timeRemaining -= 0.05;
+            updateTimerDisplay();
+
+            // Calculate how far piece should have fallen based on time elapsed
+            const timeElapsed = currentTimeLimit - timeRemaining;
+            const targetY = Math.floor((timeElapsed / currentTimeLimit) * maxFallY);
+
+            // Move piece down if needed
+            if (waitingForAnswer && currentPiece && currentPiece.y < targetY) {
+                if (canPlace(currentPiece, currentPiece.x, currentPiece.y + 1)) {
+                    currentPiece.y++;
+                    render();
+                }
             }
+
+            // Check timeout
+            if (timeRemaining <= 0 && waitingForAnswer) {
+                handleTimeout();
+            }
+        }
+
+        // Stop game loop
+        function stopGameLoop() {
+            if (gameLoopInterval) {
+                clearInterval(gameLoopInterval);
+                gameLoopInterval = null;
+            }
+        }
+
+        // Start game loop
+        function startGameLoop() {
+            stopGameLoop();
+            lastFallTime = Date.now();
+            gameLoopInterval = setInterval(gameLoop, 50);
         }
 
         // Handle timeout
         function handleTimeout() {
-            stopTimer();
+            if (!waitingForAnswer || isAnimating) return;
+            waitingForAnswer = false;
             showFeedback('TIME OUT!', 'timeout');
-            handleAnswer(false);
+
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => btn.disabled = true);
+            buttons[currentQuiz.correctIndex].classList.add('correct');
+
+            totalAnswers++;
+            hardDropPiece(false);
         }
 
         // Handle answer selection
-        function handleAnswer(isCorrect) {
-            if (!waitingForAnswer) return;
+        function handleAnswer(isCorrect, buttonIndex) {
+            if (!waitingForAnswer || isAnimating) return;
 
             waitingForAnswer = false;
             totalAnswers++;
 
-            // Disable buttons
             const buttons = document.querySelectorAll('.answer-btn');
             buttons.forEach(btn => btn.disabled = true);
-
-            // Highlight correct answer
             buttons[currentQuiz.correctIndex].classList.add('correct');
+
+            if (!isCorrect) {
+                buttons[buttonIndex].classList.add('incorrect');
+            }
 
             if (isCorrect) {
                 correctAnswers++;
-                const position = findOptimalPosition(currentPiece);
-                animatePiecePlacement(position);
+                showFeedback('CORRECT!', 'correct');
+                // Animate to optimal position
+                animateToOptimalPosition();
             } else {
-                const position = findSuboptimalPosition(currentPiece);
-                animatePiecePlacement(position);
+                showFeedback('WRONG!', 'incorrect');
+                // Just drop straight down
+                hardDropPiece(false);
             }
         }
 
-        // Animate piece placement with falling animation
-        function animatePiecePlacement(position) {
-            currentPiece.shape = position.shape;
-            currentPiece.x = position.x;
-            currentPiece.y = 0;
+        // Animate piece to optimal position then drop
+        function animateToOptimalPosition() {
+            isAnimating = true;
+            const optimal = findOptimalPosition(currentPiece);
 
-            const targetY = position.y;
-            const fallSpeed = 50; // milliseconds per row
+            // Animate rotation and horizontal movement
+            const steps = [];
+            let tempShape = currentPiece.shape.map(row => [...row]);
+            let tempX = currentPiece.x;
 
-            function animateFall() {
-                if (currentPiece.y < targetY) {
+            // Find rotation steps needed
+            for (let r = 0; r < 4; r++) {
+                if (JSON.stringify(tempShape) === JSON.stringify(optimal.shape)) {
+                    break;
+                }
+                tempShape = rotatePieceShape(tempShape);
+                steps.push({ type: 'rotate' });
+            }
+
+            // Calculate horizontal movement
+            const xDiff = optimal.x - currentPiece.x;
+            for (let i = 0; i < Math.abs(xDiff); i++) {
+                steps.push({ type: 'move', dir: xDiff > 0 ? 1 : -1 });
+            }
+
+            let stepIndex = 0;
+
+            function doStep() {
+                if (stepIndex >= steps.length) {
+                    // All moves done, now hard drop
+                    hardDropPiece(true);
+                    return;
+                }
+
+                const step = steps[stepIndex];
+                if (step.type === 'rotate') {
+                    const newShape = rotatePieceShape(currentPiece.shape);
+                    if (canPlaceShape(newShape, currentPiece.x, currentPiece.y)) {
+                        currentPiece.shape = newShape;
+                    }
+                } else if (step.type === 'move') {
+                    const newX = currentPiece.x + step.dir;
+                    if (canPlaceShape(currentPiece.shape, newX, currentPiece.y)) {
+                        currentPiece.x = newX;
+                    }
+                }
+
+                render();
+                stepIndex++;
+                setTimeout(doStep, 50);
+            }
+
+            doStep();
+        }
+
+        // Hard drop the piece
+        function hardDropPiece(isOptimal) {
+            isAnimating = true;
+
+            const landingY = findLandingY(currentPiece);
+
+            function dropStep() {
+                if (currentPiece.y < landingY) {
                     currentPiece.y++;
-                    renderBoardWithPiece();
-                    setTimeout(animateFall, fallSpeed);
+                    render();
+                    setTimeout(dropStep, 25);
                 } else {
-                    // Piece has landed
+                    // Piece landed
                     placePiece(currentPiece);
                     clearLines();
-                    renderBoard();
+                    render();
 
-                    // Check game over
+                    isAnimating = false;
+
                     if (checkGameOver()) {
                         endGame();
                         return;
@@ -1128,7 +1190,6 @@
                     turn++;
                     turnsUntilDecrease--;
 
-                    // Check if time should decrease
                     if (turnsUntilDecrease <= 0) {
                         turnsUntilDecrease = turnsBeforeDecrease;
                         currentTimeLimit = Math.max(minimumTime, currentTimeLimit - timeDecreaseAmount);
@@ -1136,48 +1197,11 @@
 
                     updateStats();
 
-                    // Start next turn after brief delay
-                    setTimeout(() => {
-                        startNewTurn();
-                    }, 300);
+                    setTimeout(startNewTurn, 400);
                 }
             }
 
-            animateFall();
-        }
-
-        // Render board with current falling piece
-        function renderBoardWithPiece() {
-            const boardEl = document.getElementById('game-board');
-            boardEl.innerHTML = '';
-
-            for (let y = 0; y < BOARD_HEIGHT; y++) {
-                for (let x = 0; x < BOARD_WIDTH; x++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    if (board[y][x]) {
-                        cell.classList.add('filled', board[y][x]);
-                    }
-                    boardEl.appendChild(cell);
-                }
-            }
-
-            // Render falling piece
-            if (currentPiece) {
-                const cells = boardEl.querySelectorAll('.cell');
-                for (let py = 0; py < currentPiece.shape.length; py++) {
-                    for (let px = 0; px < currentPiece.shape[py].length; px++) {
-                        if (currentPiece.shape[py][px]) {
-                            const boardY = currentPiece.y + py;
-                            const boardX = currentPiece.x + px;
-                            if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
-                                const index = boardY * BOARD_WIDTH + boardX;
-                                cells[index].classList.add('filled', currentPiece.color);
-                            }
-                        }
-                    }
-                }
-            }
+            dropStep();
         }
 
         // Show feedback
@@ -1188,7 +1212,7 @@
 
             setTimeout(() => {
                 feedback.classList.remove('show');
-            }, 1000);
+            }, 800);
         }
 
         // Update stats display
@@ -1229,24 +1253,33 @@
 
         // Start a new turn
         function startNewTurn() {
+            if (gameOver) return;
+
             currentPiece = nextPiece || createPiece(getRandomPieceType());
+            currentPiece.y = 0;
             nextPiece = createPiece(getRandomPieceType());
 
-            renderNextPiece();
-            renderBoard();
+            // Calculate max fall distance
+            maxFallY = findLandingY(currentPiece);
 
-            // Generate and display quiz
+            renderNextPiece();
+            render();
+
             const quiz = generateQuiz();
             displayQuiz(quiz);
 
+            timeRemaining = currentTimeLimit;
+            updateTimerDisplay();
+
             waitingForAnswer = true;
-            startTimer();
+            isAnimating = false;
+            startGameLoop();
         }
 
         // End game
         function endGame() {
             gameOver = true;
-            stopTimer();
+            stopGameLoop();
 
             document.getElementById('final-score').textContent = score;
             document.getElementById('final-lines').textContent = linesCleared;
@@ -1260,13 +1293,11 @@
 
         // Start game
         function startGame() {
-            // Get settings
             startingTime = parseFloat(document.getElementById('start-time').value) || 10;
             turnsBeforeDecrease = parseInt(document.getElementById('turns-decrease').value) || 10;
             timeDecreaseAmount = parseFloat(document.getElementById('time-decrease').value) || 1;
             minimumTime = parseFloat(document.getElementById('min-time').value) || 3;
 
-            // Reset game state
             currentTimeLimit = startingTime;
             turnsUntilDecrease = turnsBeforeDecrease;
             score = 0;
@@ -1275,14 +1306,13 @@
             totalAnswers = 0;
             turn = 1;
             gameOver = false;
+            isAnimating = false;
             currentPiece = null;
             nextPiece = null;
 
-            // Hide overlays
             document.getElementById('start-overlay').style.display = 'none';
             document.getElementById('game-over-overlay').style.display = 'none';
 
-            // Initialize
             initBoard();
             updateStats();
             startNewTurn();
@@ -1291,6 +1321,7 @@
         // Event listeners
         document.getElementById('start-btn').addEventListener('click', startGame);
         document.getElementById('restart-btn').addEventListener('click', () => {
+            stopGameLoop();
             document.getElementById('game-over-overlay').style.display = 'none';
             document.getElementById('start-overlay').style.display = 'flex';
         });
@@ -1298,26 +1329,15 @@
         // Answer button clicks
         document.querySelectorAll('.answer-btn').forEach((btn, index) => {
             btn.addEventListener('click', () => {
-                if (!waitingForAnswer || gameOver) return;
-
-                stopTimer();
+                if (!waitingForAnswer || gameOver || isAnimating) return;
                 const isCorrect = index === currentQuiz.correctIndex;
-
-                if (isCorrect) {
-                    btn.classList.add('correct');
-                    showFeedback('CORRECT!', 'correct');
-                } else {
-                    btn.classList.add('incorrect');
-                    showFeedback('WRONG!', 'incorrect');
-                }
-
-                handleAnswer(isCorrect);
+                handleAnswer(isCorrect, index);
             });
         });
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            if (!waitingForAnswer || gameOver) return;
+            if (!waitingForAnswer || gameOver || isAnimating) return;
 
             const key = e.key;
             if (key >= '1' && key <= '4') {
@@ -1326,7 +1346,7 @@
             }
         });
 
-        // Initialize next piece preview
+        // Initialize
         renderNextPiece();
     </script>
 </body>
