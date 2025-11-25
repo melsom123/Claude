@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spanish Duck Hunt - Learn Spanish Verbs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(180deg,
+                #87CEEB 0%,
+                #87CEEB 60%,
+                #228B22 60%,
+                #228B22 100%);
+        }
+
+        /* Clouds */
+        .cloud {
+            position: absolute;
+            font-size: 60px;
+            opacity: 0.8;
+            animation: float 20s linear infinite;
+        }
+
+        .cloud:nth-child(1) { top: 5%; left: -100px; animation-delay: 0s; }
+        .cloud:nth-child(2) { top: 15%; left: -100px; animation-delay: 7s; }
+        .cloud:nth-child(3) { top: 25%; left: -100px; animation-delay: 14s; }
+
+        @keyframes float {
+            from { transform: translateX(-100px); }
+            to { transform: translateX(calc(100vw + 100px)); }
+        }
+
+        /* Sun */
+        .sun {
+            position: absolute;
+            top: 30px;
+            right: 50px;
+            font-size: 80px;
+        }
+
+        /* Grass details */
+        .grass-detail {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40%;
+            overflow: hidden;
+        }
+
+        .bush {
+            position: absolute;
+            bottom: 0;
+            font-size: 80px;
+        }
+
+        .bush:nth-child(1) { left: 5%; }
+        .bush:nth-child(2) { left: 25%; }
+        .bush:nth-child(3) { left: 50%; }
+        .bush:nth-child(4) { left: 75%; }
+        .bush:nth-child(5) { left: 90%; }
+
+        /* Duck */
+        .duck {
+            position: absolute;
+            font-size: 80px;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+
+        .duck.flying {
+            animation: duckFly 0.3s infinite alternate;
+        }
+
+        @keyframes duckFly {
+            0% { transform: translateY(0) rotate(-5deg); }
+            100% { transform: translateY(-10px) rotate(5deg); }
+        }
+
+        .duck.hit {
+            animation: duckFall 1s forwards;
+        }
+
+        @keyframes duckFall {
+            0% { transform: rotate(0deg); }
+            100% { transform: translateY(500px) rotate(720deg); }
+        }
+
+        .duck.escape {
+            animation: duckEscape 1.5s forwards;
+        }
+
+        @keyframes duckEscape {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-600px) translateX(100px); }
+        }
+
+        /* Dog */
+        .dog {
+            position: absolute;
+            bottom: 38%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 100px;
+            z-index: 20;
+            transition: all 0.5s;
+        }
+
+        .dog.hidden {
+            bottom: 30%;
+            opacity: 0;
+        }
+
+        .dog.fetching {
+            animation: dogJump 0.8s ease-out;
+        }
+
+        @keyframes dogJump {
+            0% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-100px); }
+            100% { transform: translateX(-50%) translateY(0); }
+        }
+
+        .dog.laughing {
+            animation: dogLaugh 0.5s ease-in-out 3;
+        }
+
+        @keyframes dogLaugh {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            25% { transform: translateX(-50%) rotate(-10deg); }
+            75% { transform: translateX(-50%) rotate(10deg); }
+        }
+
+        /* Speech bubble */
+        .speech-bubble {
+            position: absolute;
+            bottom: calc(38% + 110px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 25;
+        }
+
+        .speech-bubble.show {
+            opacity: 1;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 10px solid transparent;
+            border-top-color: white;
+        }
+
+        /* Quiz panel */
+        .quiz-panel {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .verb-label {
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .spanish-verb {
+            color: #FFD700;
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Timer */
+        .timer-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border-radius: 15px;
+            z-index: 100;
+        }
+
+        .timer-text {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .timer-bar {
+            width: 150px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.1s linear;
+        }
+
+        .timer-fill.warning {
+            background: linear-gradient(90deg, #FF9800, #FFC107);
+        }
+
+        .timer-fill.danger {
+            background: linear-gradient(90deg, #f44336, #FF5722);
+        }
+
+        /* Stats */
+        .stats-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border-radius: 15px;
+            z-index: 100;
+        }
+
+        .stat-row {
+            color: white;
+            font-size: 18px;
+            margin: 5px 0;
+        }
+
+        .stat-value {
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        /* Answer buttons */
+        .answers-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .answer-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 150px;
+        }
+
+        .answer-btn:nth-child(1) { background: #e91e63; color: white; }
+        .answer-btn:nth-child(2) { background: #2196F3; color: white; }
+        .answer-btn:nth-child(3) { background: #4CAF50; color: white; }
+        .answer-btn:nth-child(4) { background: #FF9800; color: white; }
+
+        .answer-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .answer-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .answer-btn.correct {
+            background: #00E676 !important;
+            animation: pulse 0.5s;
+        }
+
+        .answer-btn.incorrect {
+            background: #FF1744 !important;
+        }
+
+        .key-hint {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Overlays */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay-box {
+            background: linear-gradient(135deg, #1a1a4a, #0f0f33);
+            padding: 40px 60px;
+            border-radius: 20px;
+            text-align: center;
+            border: 3px solid #FFD700;
+        }
+
+        .overlay-box h1 {
+            color: #FFD700;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .overlay-box h2 {
+            color: #87CEEB;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .instructions {
+            color: #ccc;
+            text-align: left;
+            margin: 20px 0;
+            line-height: 2;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+
+        .settings-form {
+            margin: 20px 0;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .setting-row label {
+            color: #ccc;
+        }
+
+        .setting-row input {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #4a4a6a;
+            border-radius: 5px;
+            background: #1a1a3a;
+            color: white;
+            text-align: center;
+        }
+
+        .start-btn, .restart-btn {
+            padding: 20px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #1a1a1a;
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #4CAF50, #388E3C);
+            color: white;
+        }
+
+        .start-btn:hover, .restart-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .final-stats {
+            color: white;
+            font-size: 20px;
+            line-height: 2;
+            margin: 20px 0;
+        }
+
+        .final-stats span {
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        .game-over-title {
+            color: #FF4444 !important;
+        }
+
+        /* Shot effect */
+        .shot-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 50;
+        }
+
+        .shot-effect.show {
+            animation: flash 0.1s;
+        }
+
+        @keyframes flash {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Feathers */
+        .feather {
+            position: absolute;
+            font-size: 30px;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        @keyframes featherFall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(300px) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Start Overlay -->
+    <div class="overlay" id="start-overlay">
+        <div class="overlay-box">
+            <h1>SPANISH DUCK HUNT</h1>
+            <h2>Learn Spanish Verbs!</h2>
+
+            <ul class="instructions">
+                <li>A duck appears with a Spanish verb</li>
+                <li><strong>Correct answer</strong> = Duck gets shot, dog fetches it!</li>
+                <li><strong>Wrong answer</strong> = Duck escapes and laughs at you!</li>
+                <li>Use keys <strong>1-4</strong> or click to answer</li>
+            </ul>
+
+            <div class="settings-form">
+                <div class="setting-row">
+                    <label>Starting time (seconds):</label>
+                    <input type="number" id="start-time" value="8" min="3" max="30">
+                </div>
+                <div class="setting-row">
+                    <label>Rounds before time decrease:</label>
+                    <input type="number" id="rounds-decrease" value="5" min="1" max="20">
+                </div>
+                <div class="setting-row">
+                    <label>Time decrease (seconds):</label>
+                    <input type="number" id="time-decrease" value="0.5" min="0.5" max="3" step="0.5">
+                </div>
+            </div>
+
+            <button class="start-btn" id="start-btn">START HUNTING!</button>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div class="overlay hidden" id="gameover-overlay">
+        <div class="overlay-box">
+            <h1 class="game-over-title">GAME OVER</h1>
+
+            <div class="final-stats">
+                <div>Ducks Shot: <span id="final-shot">0</span></div>
+                <div>Ducks Escaped: <span id="final-escaped">0</span></div>
+                <div>Accuracy: <span id="final-accuracy">0%</span></div>
+                <div>High Score: <span id="final-score">0</span></div>
+            </div>
+
+            <button class="restart-btn" id="restart-btn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div class="game-container" id="game-container">
+        <!-- Sky elements -->
+        <div class="cloud">☁️</div>
+        <div class="cloud">☁️</div>
+        <div class="cloud">☁️</div>
+        <div class="sun">☀️</div>
+
+        <!-- Grass/bushes -->
+        <div class="grass-detail">
+            <div class="bush">🌳</div>
+            <div class="bush">🌲</div>
+            <div class="bush">🌳</div>
+            <div class="bush">🌲</div>
+            <div class="bush">🌳</div>
+        </div>
+
+        <!-- Duck -->
+        <div class="duck flying" id="duck">🦆</div>
+
+        <!-- Dog -->
+        <div class="dog hidden" id="dog">🐕</div>
+        <div class="speech-bubble" id="speech-bubble">Haha!</div>
+
+        <!-- Shot effect -->
+        <div class="shot-effect" id="shot-effect"></div>
+
+        <!-- Quiz panel -->
+        <div class="quiz-panel">
+            <div class="verb-label">Translate this verb:</div>
+            <div class="spanish-verb" id="spanish-verb">hablar</div>
+        </div>
+
+        <!-- Timer -->
+        <div class="timer-container">
+            <div class="timer-text" id="timer-text">8.0s</div>
+            <div class="timer-bar">
+                <div class="timer-fill" id="timer-fill"></div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-panel">
+            <div class="stat-row">Score: <span class="stat-value" id="score">0</span></div>
+            <div class="stat-row">Shot: <span class="stat-value" id="shot-count">0</span></div>
+            <div class="stat-row">Escaped: <span class="stat-value" id="escaped-count">0</span></div>
+            <div class="stat-row">Round: <span class="stat-value" id="round">1</span></div>
+        </div>
+
+        <!-- Answers -->
+        <div class="answers-panel" id="answers-panel">
+            <button class="answer-btn" data-index="0">
+                <div class="answer-text">to speak</div>
+                <div class="key-hint">[1]</div>
+            </button>
+            <button class="answer-btn" data-index="1">
+                <div class="answer-text">to eat</div>
+                <div class="key-hint">[2]</div>
+            </button>
+            <button class="answer-btn" data-index="2">
+                <div class="answer-text">to run</div>
+                <div class="key-hint">[3]</div>
+            </button>
+            <button class="answer-btn" data-index="3">
+                <div class="answer-text">to sleep</div>
+                <div class="key-hint">[4]</div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Spanish verbs database
+        const spanishVerbs = [
+            { spanish: "hablar", english: "to speak" },
+            { spanish: "comer", english: "to eat" },
+            { spanish: "beber", english: "to drink" },
+            { spanish: "vivir", english: "to live" },
+            { spanish: "dormir", english: "to sleep" },
+            { spanish: "correr", english: "to run" },
+            { spanish: "caminar", english: "to walk" },
+            { spanish: "escribir", english: "to write" },
+            { spanish: "leer", english: "to read" },
+            { spanish: "escuchar", english: "to listen" },
+            { spanish: "mirar", english: "to watch" },
+            { spanish: "ver", english: "to see" },
+            { spanish: "pensar", english: "to think" },
+            { spanish: "creer", english: "to believe" },
+            { spanish: "saber", english: "to know (fact)" },
+            { spanish: "conocer", english: "to know (person)" },
+            { spanish: "querer", english: "to want" },
+            { spanish: "poder", english: "to be able" },
+            { spanish: "tener", english: "to have" },
+            { spanish: "hacer", english: "to do/make" },
+            { spanish: "ir", english: "to go" },
+            { spanish: "venir", english: "to come" },
+            { spanish: "decir", english: "to say" },
+            { spanish: "dar", english: "to give" },
+            { spanish: "poner", english: "to put" },
+            { spanish: "salir", english: "to leave" },
+            { spanish: "llegar", english: "to arrive" },
+            { spanish: "pasar", english: "to pass/happen" },
+            { spanish: "quedar", english: "to stay/remain" },
+            { spanish: "llevar", english: "to carry/wear" },
+            { spanish: "dejar", english: "to leave/let" },
+            { spanish: "seguir", english: "to follow" },
+            { spanish: "encontrar", english: "to find" },
+            { spanish: "llamar", english: "to call" },
+            { spanish: "sentir", english: "to feel" },
+            { spanish: "tratar", english: "to try/treat" },
+            { spanish: "buscar", english: "to search" },
+            { spanish: "entrar", english: "to enter" },
+            { spanish: "trabajar", english: "to work" },
+            { spanish: "jugar", english: "to play" },
+            { spanish: "aprender", english: "to learn" },
+            { spanish: "enseñar", english: "to teach" },
+            { spanish: "comprar", english: "to buy" },
+            { spanish: "vender", english: "to sell" },
+            { spanish: "abrir", english: "to open" },
+            { spanish: "cerrar", english: "to close" },
+            { spanish: "empezar", english: "to start" },
+            { spanish: "terminar", english: "to finish" },
+            { spanish: "ayudar", english: "to help" },
+            { spanish: "necesitar", english: "to need" },
+            { spanish: "esperar", english: "to wait/hope" },
+            { spanish: "recordar", english: "to remember" },
+            { spanish: "olvidar", english: "to forget" },
+            { spanish: "preguntar", english: "to ask" },
+            { spanish: "responder", english: "to answer" },
+            { spanish: "cantar", english: "to sing" },
+            { spanish: "bailar", english: "to dance" },
+            { spanish: "nadar", english: "to swim" },
+            { spanish: "volar", english: "to fly" },
+            { spanish: "conducir", english: "to drive" },
+            { spanish: "cocinar", english: "to cook" },
+            { spanish: "limpiar", english: "to clean" },
+            { spanish: "pagar", english: "to pay" },
+            { spanish: "ganar", english: "to win/earn" },
+            { spanish: "perder", english: "to lose" }
+        ];
+
+        // Game state
+        let score = 0;
+        let shotCount = 0;
+        let escapedCount = 0;
+        let round = 1;
+        let gameOver = false;
+        let waitingForAnswer = false;
+        let currentQuiz = null;
+
+        // Settings
+        let startingTime = 8;
+        let roundsBeforeDecrease = 5;
+        let timeDecreaseAmount = 0.5;
+        let currentTimeLimit = 8;
+        let minimumTime = 2;
+
+        // Timer
+        let timerInterval = null;
+        let timeRemaining = 0;
+
+        // Duck movement
+        let duckMoveInterval = null;
+        let duckX = 0;
+        let duckY = 0;
+        let duckVelX = 0;
+        let duckVelY = 0;
+
+        // Elements
+        const duck = document.getElementById('duck');
+        const dog = document.getElementById('dog');
+        const speechBubble = document.getElementById('speech-bubble');
+        const shotEffect = document.getElementById('shot-effect');
+
+        // Generate quiz
+        function generateQuiz() {
+            const correctVerb = spanishVerbs[Math.floor(Math.random() * spanishVerbs.length)];
+
+            const wrongAnswers = [];
+            while (wrongAnswers.length < 3) {
+                const verb = spanishVerbs[Math.floor(Math.random() * spanishVerbs.length)];
+                if (verb.english !== correctVerb.english && !wrongAnswers.includes(verb.english)) {
+                    wrongAnswers.push(verb.english);
+                }
+            }
+
+            const answers = [correctVerb.english, ...wrongAnswers];
+            for (let i = answers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [answers[i], answers[j]] = [answers[j], answers[i]];
+            }
+
+            return {
+                spanish: correctVerb.spanish,
+                answers: answers,
+                correctIndex: answers.indexOf(correctVerb.english)
+            };
+        }
+
+        // Display quiz
+        function displayQuiz(quiz) {
+            document.getElementById('spanish-verb').textContent = quiz.spanish;
+
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach((btn, i) => {
+                btn.querySelector('.answer-text').textContent = quiz.answers[i];
+                btn.disabled = false;
+                btn.className = 'answer-btn';
+            });
+
+            currentQuiz = quiz;
+        }
+
+        // Start duck movement
+        function startDuckMovement() {
+            // Random starting position
+            duckX = Math.random() * (window.innerWidth - 200) + 100;
+            duckY = Math.random() * (window.innerHeight * 0.3) + 50;
+            duckVelX = (Math.random() - 0.5) * 4;
+            duckVelY = (Math.random() - 0.5) * 2;
+
+            duck.style.left = duckX + 'px';
+            duck.style.top = duckY + 'px';
+            duck.className = 'duck flying';
+            duck.style.transform = duckVelX < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+
+            duckMoveInterval = setInterval(() => {
+                duckX += duckVelX;
+                duckY += duckVelY;
+
+                // Bounce off walls
+                if (duckX < 50 || duckX > window.innerWidth - 150) {
+                    duckVelX *= -1;
+                    duck.style.transform = duckVelX < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+                }
+                if (duckY < 50 || duckY > window.innerHeight * 0.4) {
+                    duckVelY *= -1;
+                }
+
+                // Random direction changes
+                if (Math.random() < 0.02) {
+                    duckVelX += (Math.random() - 0.5) * 2;
+                    duckVelY += (Math.random() - 0.5) * 1;
+                    duckVelX = Math.max(-5, Math.min(5, duckVelX));
+                    duckVelY = Math.max(-3, Math.min(3, duckVelY));
+                    duck.style.transform = duckVelX < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+                }
+
+                duck.style.left = duckX + 'px';
+                duck.style.top = duckY + 'px';
+            }, 30);
+        }
+
+        // Stop duck movement
+        function stopDuckMovement() {
+            if (duckMoveInterval) {
+                clearInterval(duckMoveInterval);
+                duckMoveInterval = null;
+            }
+        }
+
+        // Start timer
+        function startTimer() {
+            timeRemaining = currentTimeLimit;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeRemaining -= 0.1;
+                updateTimerDisplay();
+
+                if (timeRemaining <= 0 && waitingForAnswer) {
+                    handleTimeout();
+                }
+            }, 100);
+        }
+
+        // Stop timer
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        // Update timer display
+        function updateTimerDisplay() {
+            const timerText = document.getElementById('timer-text');
+            const timerFill = document.getElementById('timer-fill');
+
+            const percentage = (timeRemaining / currentTimeLimit) * 100;
+            timerFill.style.width = percentage + '%';
+            timerText.textContent = Math.max(0, timeRemaining).toFixed(1) + 's';
+
+            timerFill.classList.remove('warning', 'danger');
+            if (percentage < 30) {
+                timerFill.classList.add('danger');
+            } else if (percentage < 60) {
+                timerFill.classList.add('warning');
+            }
+        }
+
+        // Handle correct answer
+        function handleCorrect(buttonIndex) {
+            waitingForAnswer = false;
+            stopTimer();
+            stopDuckMovement();
+
+            // Flash effect
+            shotEffect.classList.add('show');
+            setTimeout(() => shotEffect.classList.remove('show'), 100);
+
+            // Highlight correct button
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => btn.disabled = true);
+            buttons[buttonIndex].classList.add('correct');
+
+            // Duck falls
+            duck.className = 'duck hit';
+
+            // Create feathers
+            for (let i = 0; i < 5; i++) {
+                createFeather(duckX + 40, duckY + 40);
+            }
+
+            // Dog fetches
+            setTimeout(() => {
+                dog.classList.remove('hidden');
+                dog.classList.add('fetching');
+                dog.textContent = '🐕';
+
+                setTimeout(() => {
+                    speechBubble.textContent = 'Good boy!';
+                    speechBubble.classList.add('show');
+                }, 400);
+            }, 500);
+
+            // Update stats
+            shotCount++;
+            score += Math.ceil(timeRemaining * 10);
+            updateStats();
+
+            // Next round
+            setTimeout(() => {
+                dog.classList.remove('fetching');
+                speechBubble.classList.remove('show');
+                setTimeout(() => {
+                    dog.classList.add('hidden');
+                    nextRound();
+                }, 500);
+            }, 2000);
+        }
+
+        // Handle wrong answer or timeout
+        function handleWrong(buttonIndex, isTimeout) {
+            waitingForAnswer = false;
+            stopTimer();
+            stopDuckMovement();
+
+            // Highlight buttons
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => btn.disabled = true);
+            buttons[currentQuiz.correctIndex].classList.add('correct');
+            if (!isTimeout && buttonIndex !== currentQuiz.correctIndex) {
+                buttons[buttonIndex].classList.add('incorrect');
+            }
+
+            // Duck escapes
+            duck.className = 'duck escape';
+
+            // Dog laughs
+            setTimeout(() => {
+                dog.classList.remove('hidden');
+                dog.classList.add('laughing');
+                dog.textContent = '🐕';
+
+                speechBubble.textContent = isTimeout ? 'Too slow!' : 'Ha ha ha!';
+                speechBubble.classList.add('show');
+            }, 300);
+
+            // Update stats
+            escapedCount++;
+            updateStats();
+
+            // Check game over (3 escapes)
+            if (escapedCount >= 3) {
+                setTimeout(() => {
+                    endGame();
+                }, 2000);
+                return;
+            }
+
+            // Next round
+            setTimeout(() => {
+                dog.classList.remove('laughing');
+                speechBubble.classList.remove('show');
+                setTimeout(() => {
+                    dog.classList.add('hidden');
+                    nextRound();
+                }, 500);
+            }, 2000);
+        }
+
+        // Handle timeout
+        function handleTimeout() {
+            handleWrong(-1, true);
+        }
+
+        // Create feather effect
+        function createFeather(x, y) {
+            const feather = document.createElement('div');
+            feather.className = 'feather';
+            feather.textContent = '🪶';
+            feather.style.left = (x + Math.random() * 40 - 20) + 'px';
+            feather.style.top = y + 'px';
+            feather.style.animation = 'featherFall 1s forwards';
+            document.getElementById('game-container').appendChild(feather);
+
+            setTimeout(() => feather.remove(), 1000);
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('shot-count').textContent = shotCount;
+            document.getElementById('escaped-count').textContent = escapedCount;
+            document.getElementById('round').textContent = round;
+        }
+
+        // Next round
+        function nextRound() {
+            round++;
+
+            // Decrease time every X rounds
+            if (round % roundsBeforeDecrease === 0) {
+                currentTimeLimit = Math.max(minimumTime, currentTimeLimit - timeDecreaseAmount);
+            }
+
+            updateStats();
+            startNewRound();
+        }
+
+        // Start new round
+        function startNewRound() {
+            const quiz = generateQuiz();
+            displayQuiz(quiz);
+
+            // Reset duck
+            duck.className = 'duck flying';
+            startDuckMovement();
+
+            waitingForAnswer = true;
+            startTimer();
+        }
+
+        // End game
+        function endGame() {
+            gameOver = true;
+            stopTimer();
+            stopDuckMovement();
+
+            dog.classList.remove('hidden', 'laughing');
+            speechBubble.classList.remove('show');
+
+            document.getElementById('final-shot').textContent = shotCount;
+            document.getElementById('final-escaped').textContent = escapedCount;
+            document.getElementById('final-score').textContent = score;
+
+            const total = shotCount + escapedCount;
+            const accuracy = total > 0 ? Math.round((shotCount / total) * 100) : 0;
+            document.getElementById('final-accuracy').textContent = accuracy + '%';
+
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+        }
+
+        // Start game
+        function startGame() {
+            // Get settings
+            startingTime = parseFloat(document.getElementById('start-time').value) || 8;
+            roundsBeforeDecrease = parseInt(document.getElementById('rounds-decrease').value) || 5;
+            timeDecreaseAmount = parseFloat(document.getElementById('time-decrease').value) || 0.5;
+
+            // Reset state
+            currentTimeLimit = startingTime;
+            score = 0;
+            shotCount = 0;
+            escapedCount = 0;
+            round = 1;
+            gameOver = false;
+
+            // Hide overlays
+            document.getElementById('start-overlay').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
+
+            // Hide dog
+            dog.classList.add('hidden');
+            dog.classList.remove('fetching', 'laughing');
+            speechBubble.classList.remove('show');
+
+            updateStats();
+            startNewRound();
+        }
+
+        // Event listeners
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            document.getElementById('start-overlay').classList.remove('hidden');
+        });
+
+        // Answer buttons
+        document.querySelectorAll('.answer-btn').forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                if (!waitingForAnswer || gameOver) return;
+
+                if (index === currentQuiz.correctIndex) {
+                    handleCorrect(index);
+                } else {
+                    handleWrong(index, false);
+                }
+            });
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!waitingForAnswer || gameOver) return;
+
+            const key = e.key;
+            if (key >= '1' && key <= '4') {
+                const index = parseInt(key) - 1;
+                document.querySelectorAll('.answer-btn')[index].click();
+            }
+        });
+    </script>
+</body>
+</html>
