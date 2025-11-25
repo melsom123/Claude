@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spanish Tetris - Learn Spanish Verbs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            padding: 20px;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .game-board-container {
+            background: #0f0f23;
+            border: 3px solid #4a4a6a;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-template-rows: repeat(20, 30px);
+            gap: 1px;
+            background: #1a1a3a;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background: #0a0a1a;
+            border: 1px solid #1a1a3a;
+        }
+
+        .cell.filled {
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .cell.I { background: linear-gradient(135deg, #00f5ff, #00a8b5); }
+        .cell.O { background: linear-gradient(135deg, #ffeb3b, #f5c400); }
+        .cell.T { background: linear-gradient(135deg, #9c27b0, #7b1fa2); }
+        .cell.S { background: linear-gradient(135deg, #4caf50, #388e3c); }
+        .cell.Z { background: linear-gradient(135deg, #f44336, #d32f2f); }
+        .cell.J { background: linear-gradient(135deg, #2196f3, #1976d2); }
+        .cell.L { background: linear-gradient(135deg, #ff9800, #f57c00); }
+
+        .cell.ghost {
+            opacity: 0.3;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 350px;
+        }
+
+        .info-box {
+            background: #0f0f23;
+            border: 2px solid #4a4a6a;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .info-box h3 {
+            color: #00f5ff;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .quiz-box {
+            background: linear-gradient(135deg, #1a1a4a 0%, #0f0f33 100%);
+            border: 3px solid #6a4a9a;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .spanish-verb {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffeb3b;
+            margin: 15px 0;
+            text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+        }
+
+        .timer-bar-container {
+            background: #1a1a3a;
+            border-radius: 10px;
+            height: 20px;
+            margin: 15px 0;
+            overflow: hidden;
+            border: 2px solid #4a4a6a;
+        }
+
+        .timer-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.1s linear;
+            border-radius: 8px;
+        }
+
+        .timer-bar.warning {
+            background: linear-gradient(90deg, #ff9800, #ffeb3b);
+        }
+
+        .timer-bar.danger {
+            background: linear-gradient(90deg, #f44336, #ff5722);
+        }
+
+        .timer-text {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .answers {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .answer-btn {
+            padding: 15px 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+
+        .answer-btn:nth-child(1) {
+            background: linear-gradient(135deg, #e91e63, #c2185b);
+            color: white;
+        }
+
+        .answer-btn:nth-child(2) {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            color: white;
+        }
+
+        .answer-btn:nth-child(3) {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            color: white;
+        }
+
+        .answer-btn:nth-child(4) {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+        }
+
+        .answer-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .answer-btn:active {
+            transform: scale(0.95);
+        }
+
+        .answer-btn.correct {
+            background: linear-gradient(135deg, #00e676, #00c853) !important;
+            animation: pulse 0.5s;
+        }
+
+        .answer-btn.incorrect {
+            background: linear-gradient(135deg, #ff1744, #d50000) !important;
+            animation: shake 0.5s;
+        }
+
+        .answer-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .key-hint {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 3px;
+        }
+
+        .next-piece {
+            display: grid;
+            grid-template-columns: repeat(4, 25px);
+            grid-template-rows: repeat(4, 25px);
+            gap: 1px;
+            justify-content: center;
+        }
+
+        .next-cell {
+            width: 25px;
+            height: 25px;
+            background: #0a0a1a;
+            border: 1px solid #1a1a3a;
+        }
+
+        .next-cell.filled {
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .settings-info {
+            font-size: 12px;
+            color: #888;
+            line-height: 1.8;
+        }
+
+        .settings-info span {
+            color: #00f5ff;
+            font-weight: bold;
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .game-over-box {
+            background: linear-gradient(135deg, #1a1a4a 0%, #0f0f33 100%);
+            border: 3px solid #ff4444;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .game-over-box h2 {
+            color: #ff4444;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .final-stats {
+            margin: 20px 0;
+            line-height: 2;
+        }
+
+        .final-stats div {
+            font-size: 18px;
+        }
+
+        .final-stats span {
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .start-box {
+            background: linear-gradient(135deg, #1a1a4a 0%, #0f0f33 100%);
+            border: 3px solid #00f5ff;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .start-box h1 {
+            color: #00f5ff;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .start-box h2 {
+            color: #ffeb3b;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .instructions {
+            text-align: left;
+            margin: 20px 0;
+            line-height: 1.8;
+            color: #ccc;
+        }
+
+        .instructions li {
+            margin: 10px 0;
+        }
+
+        .settings-form {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .setting-row label {
+            color: #ccc;
+        }
+
+        .setting-row input {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #4a4a6a;
+            border-radius: 5px;
+            background: #1a1a3a;
+            color: white;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #00f5ff, #00a8b5);
+            color: #0a0a1a;
+            border: none;
+            padding: 20px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 30px rgba(0, 245, 255, 0.4);
+        }
+
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            z-index: 500;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feedback.show {
+            opacity: 1;
+        }
+
+        .feedback.correct {
+            color: #00e676;
+            text-shadow: 0 0 30px rgba(0, 230, 118, 0.8);
+        }
+
+        .feedback.incorrect {
+            color: #ff1744;
+            text-shadow: 0 0 30px rgba(255, 23, 68, 0.8);
+        }
+
+        .feedback.timeout {
+            color: #ff9800;
+            text-shadow: 0 0 30px rgba(255, 152, 0, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="start-overlay" id="start-overlay">
+        <div class="start-box">
+            <h1>SPANISH TETRIS</h1>
+            <h2>Learn Spanish Verbs</h2>
+
+            <ul class="instructions">
+                <li><strong>Translate</strong> the Spanish verb shown before time runs out</li>
+                <li><strong>Correct answers</strong> place the piece optimally</li>
+                <li><strong>Wrong answers</strong> place the piece suboptimally</li>
+                <li>Use keys <strong>1-4</strong> or click buttons to answer</li>
+                <li>Clear lines to score points!</li>
+            </ul>
+
+            <div class="settings-form">
+                <div class="setting-row">
+                    <label>Starting time (seconds):</label>
+                    <input type="number" id="start-time" value="10" min="3" max="30">
+                </div>
+                <div class="setting-row">
+                    <label>Turns before time decrease:</label>
+                    <input type="number" id="turns-decrease" value="10" min="1" max="50">
+                </div>
+                <div class="setting-row">
+                    <label>Time decrease (seconds):</label>
+                    <input type="number" id="time-decrease" value="1" min="0.5" max="5" step="0.5">
+                </div>
+                <div class="setting-row">
+                    <label>Minimum time (seconds):</label>
+                    <input type="number" id="min-time" value="3" min="1" max="10">
+                </div>
+            </div>
+
+            <button class="start-btn" id="start-btn">START GAME</button>
+        </div>
+    </div>
+
+    <div class="game-over-overlay" id="game-over-overlay">
+        <div class="game-over-box">
+            <h2>GAME OVER</h2>
+            <div class="final-stats">
+                <div>Score: <span id="final-score">0</span></div>
+                <div>Lines Cleared: <span id="final-lines">0</span></div>
+                <div>Correct Answers: <span id="final-correct">0</span></div>
+                <div>Accuracy: <span id="final-accuracy">0%</span></div>
+            </div>
+            <button class="restart-btn" id="restart-btn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="game-container">
+        <div class="left-panel">
+            <div class="game-board-container">
+                <div id="game-board"></div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="info-box">
+                <h3>Statistics</h3>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="score">0</div>
+                        <div class="stat-label">Score</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="lines">0</div>
+                        <div class="stat-label">Lines</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="correct">0</div>
+                        <div class="stat-label">Correct</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="turn">1</div>
+                        <div class="stat-label">Turn</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <h3>Next Piece</h3>
+                <div class="next-piece" id="next-piece"></div>
+            </div>
+
+            <div class="quiz-box">
+                <h3 style="color: #ccc; margin-bottom: 5px;">Translate this verb:</h3>
+                <div class="spanish-verb" id="spanish-verb">hablar</div>
+
+                <div class="timer-text">Time remaining: <span id="time-remaining">10.0</span>s</div>
+                <div class="timer-bar-container">
+                    <div class="timer-bar" id="timer-bar"></div>
+                </div>
+
+                <div class="answers" id="answers">
+                    <button class="answer-btn" data-index="0">
+                        <span class="answer-text">to speak</span>
+                        <div class="key-hint">Press 1</div>
+                    </button>
+                    <button class="answer-btn" data-index="1">
+                        <span class="answer-text">to eat</span>
+                        <div class="key-hint">Press 2</div>
+                    </button>
+                    <button class="answer-btn" data-index="2">
+                        <span class="answer-text">to run</span>
+                        <div class="key-hint">Press 3</div>
+                    </button>
+                    <button class="answer-btn" data-index="3">
+                        <span class="answer-text">to sleep</span>
+                        <div class="key-hint">Press 4</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <h3>Current Settings</h3>
+                <div class="settings-info">
+                    Current time limit: <span id="current-time-limit">10</span>s<br>
+                    Next decrease in: <span id="turns-until-decrease">10</span> turns
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Spanish verbs database
+        const spanishVerbs = [
+            { spanish: "hablar", english: "to speak" },
+            { spanish: "comer", english: "to eat" },
+            { spanish: "beber", english: "to drink" },
+            { spanish: "vivir", english: "to live" },
+            { spanish: "dormir", english: "to sleep" },
+            { spanish: "correr", english: "to run" },
+            { spanish: "caminar", english: "to walk" },
+            { spanish: "escribir", english: "to write" },
+            { spanish: "leer", english: "to read" },
+            { spanish: "escuchar", english: "to listen" },
+            { spanish: "mirar", english: "to watch" },
+            { spanish: "ver", english: "to see" },
+            { spanish: "pensar", english: "to think" },
+            { spanish: "creer", english: "to believe" },
+            { spanish: "saber", english: "to know (fact)" },
+            { spanish: "conocer", english: "to know (person)" },
+            { spanish: "querer", english: "to want" },
+            { spanish: "poder", english: "to be able" },
+            { spanish: "tener", english: "to have" },
+            { spanish: "hacer", english: "to do/make" },
+            { spanish: "ir", english: "to go" },
+            { spanish: "venir", english: "to come" },
+            { spanish: "decir", english: "to say" },
+            { spanish: "dar", english: "to give" },
+            { spanish: "poner", english: "to put" },
+            { spanish: "salir", english: "to leave" },
+            { spanish: "llegar", english: "to arrive" },
+            { spanish: "pasar", english: "to pass/happen" },
+            { spanish: "quedar", english: "to stay/remain" },
+            { spanish: "llevar", english: "to carry/wear" },
+            { spanish: "dejar", english: "to leave/let" },
+            { spanish: "seguir", english: "to follow" },
+            { spanish: "encontrar", english: "to find" },
+            { spanish: "llamar", english: "to call" },
+            { spanish: "sentir", english: "to feel" },
+            { spanish: "tratar", english: "to try/treat" },
+            { spanish: "buscar", english: "to search" },
+            { spanish: "entrar", english: "to enter" },
+            { spanish: "trabajar", english: "to work" },
+            { spanish: "jugar", english: "to play" },
+            { spanish: "aprender", english: "to learn" },
+            { spanish: "enseñar", english: "to teach" },
+            { spanish: "comprar", english: "to buy" },
+            { spanish: "vender", english: "to sell" },
+            { spanish: "abrir", english: "to open" },
+            { spanish: "cerrar", english: "to close" },
+            { spanish: "empezar", english: "to start" },
+            { spanish: "terminar", english: "to finish" },
+            { spanish: "ayudar", english: "to help" },
+            { spanish: "necesitar", english: "to need" },
+            { spanish: "esperar", english: "to wait/hope" },
+            { spanish: "recordar", english: "to remember" },
+            { spanish: "olvidar", english: "to forget" },
+            { spanish: "preguntar", english: "to ask" },
+            { spanish: "responder", english: "to respond" },
+            { spanish: "cantar", english: "to sing" },
+            { spanish: "bailar", english: "to dance" },
+            { spanish: "nadar", english: "to swim" },
+            { spanish: "volar", english: "to fly" },
+            { spanish: "conducir", english: "to drive" },
+            { spanish: "cocinar", english: "to cook" },
+            { spanish: "limpiar", english: "to clean" },
+            { spanish: "pagar", english: "to pay" },
+            { spanish: "ganar", english: "to win/earn" },
+            { spanish: "perder", english: "to lose" },
+            { spanish: "subir", english: "to go up" },
+            { spanish: "bajar", english: "to go down" },
+            { spanish: "morir", english: "to die" },
+            { spanish: "nacer", english: "to be born" },
+            { spanish: "caer", english: "to fall" },
+            { spanish: "reír", english: "to laugh" },
+            { spanish: "llorar", english: "to cry" },
+            { spanish: "gritar", english: "to shout" },
+            { spanish: "tocar", english: "to touch/play" },
+            { spanish: "mostrar", english: "to show" },
+            { spanish: "enviar", english: "to send" },
+            { spanish: "recibir", english: "to receive" },
+            { spanish: "cambiar", english: "to change" },
+            { spanish: "mejorar", english: "to improve" },
+            { spanish: "crear", english: "to create" }
+        ];
+
+        // Tetris pieces
+        const PIECES = {
+            I: { shape: [[1,1,1,1]], color: 'I' },
+            O: { shape: [[1,1],[1,1]], color: 'O' },
+            T: { shape: [[0,1,0],[1,1,1]], color: 'T' },
+            S: { shape: [[0,1,1],[1,1,0]], color: 'S' },
+            Z: { shape: [[1,1,0],[0,1,1]], color: 'Z' },
+            J: { shape: [[1,0,0],[1,1,1]], color: 'J' },
+            L: { shape: [[0,0,1],[1,1,1]], color: 'L' }
+        };
+
+        const PIECE_NAMES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+        const BOARD_WIDTH = 10;
+        const BOARD_HEIGHT = 20;
+
+        // Game state
+        let board = [];
+        let currentPiece = null;
+        let nextPiece = null;
+        let score = 0;
+        let linesCleared = 0;
+        let correctAnswers = 0;
+        let totalAnswers = 0;
+        let turn = 1;
+        let gameOver = false;
+        let waitingForAnswer = false;
+
+        // Settings
+        let startingTime = 10;
+        let turnsBeforeDecrease = 10;
+        let timeDecreaseAmount = 1;
+        let minimumTime = 3;
+        let currentTimeLimit = 10;
+        let turnsUntilDecrease = 10;
+
+        // Timer
+        let timerInterval = null;
+        let timeRemaining = 0;
+
+        // Current quiz
+        let currentQuiz = null;
+        let correctIndex = -1;
+
+        // Initialize the game board
+        function initBoard() {
+            board = [];
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                board[y] = [];
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    board[y][x] = null;
+                }
+            }
+            renderBoard();
+        }
+
+        // Render the game board
+        function renderBoard() {
+            const boardEl = document.getElementById('game-board');
+            boardEl.innerHTML = '';
+
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (board[y][x]) {
+                        cell.classList.add('filled', board[y][x]);
+                    }
+                    boardEl.appendChild(cell);
+                }
+            }
+
+            // Render current piece
+            if (currentPiece && !waitingForAnswer) {
+                renderPiece(currentPiece, false);
+            }
+        }
+
+        // Render a piece on the board
+        function renderPiece(piece, isGhost) {
+            const boardEl = document.getElementById('game-board');
+            const cells = boardEl.querySelectorAll('.cell');
+
+            for (let y = 0; y < piece.shape.length; y++) {
+                for (let x = 0; x < piece.shape[y].length; x++) {
+                    if (piece.shape[y][x]) {
+                        const boardY = piece.y + y;
+                        const boardX = piece.x + x;
+                        if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+                            const index = boardY * BOARD_WIDTH + boardX;
+                            cells[index].classList.add('filled', piece.color);
+                            if (isGhost) {
+                                cells[index].classList.add('ghost');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Create a new piece
+        function createPiece(type) {
+            const pieceData = PIECES[type];
+            return {
+                shape: pieceData.shape.map(row => [...row]),
+                color: pieceData.color,
+                x: Math.floor((BOARD_WIDTH - pieceData.shape[0].length) / 2),
+                y: 0
+            };
+        }
+
+        // Get a random piece type
+        function getRandomPieceType() {
+            return PIECE_NAMES[Math.floor(Math.random() * PIECE_NAMES.length)];
+        }
+
+        // Check if piece can be placed at position
+        function canPlace(piece, x, y) {
+            for (let py = 0; py < piece.shape.length; py++) {
+                for (let px = 0; px < piece.shape[py].length; px++) {
+                    if (piece.shape[py][px]) {
+                        const boardX = x + px;
+                        const boardY = y + py;
+
+                        if (boardX < 0 || boardX >= BOARD_WIDTH || boardY >= BOARD_HEIGHT) {
+                            return false;
+                        }
+
+                        if (boardY >= 0 && board[boardY][boardX]) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Place piece on board
+        function placePiece(piece) {
+            for (let y = 0; y < piece.shape.length; y++) {
+                for (let x = 0; x < piece.shape[y].length; x++) {
+                    if (piece.shape[y][x]) {
+                        const boardY = piece.y + y;
+                        const boardX = piece.x + x;
+                        if (boardY >= 0) {
+                            board[boardY][boardX] = piece.color;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Find optimal position for piece (most lines cleared, lowest position)
+        function findOptimalPosition(piece) {
+            let bestScore = -1;
+            let bestPosition = { x: piece.x, y: 0, rotation: 0 };
+
+            // Try all rotations
+            let testPiece = { ...piece, shape: piece.shape.map(row => [...row]) };
+
+            for (let rotation = 0; rotation < 4; rotation++) {
+                // Try all x positions
+                for (let x = -2; x < BOARD_WIDTH + 2; x++) {
+                    // Find drop position
+                    let y = 0;
+                    while (canPlace(testPiece, x, y + 1)) {
+                        y++;
+                    }
+
+                    if (canPlace(testPiece, x, y)) {
+                        // Simulate placement and calculate score
+                        const score = calculatePlacementScore(testPiece, x, y);
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestPosition = {
+                                x: x,
+                                y: y,
+                                rotation: rotation,
+                                shape: testPiece.shape.map(row => [...row])
+                            };
+                        }
+                    }
+                }
+
+                // Rotate piece
+                testPiece.shape = rotatePieceShape(testPiece.shape);
+            }
+
+            return bestPosition;
+        }
+
+        // Find a suboptimal position (creates holes or gaps)
+        function findSuboptimalPosition(piece) {
+            let positions = [];
+            let testPiece = { ...piece, shape: piece.shape.map(row => [...row]) };
+
+            for (let rotation = 0; rotation < 4; rotation++) {
+                for (let x = -2; x < BOARD_WIDTH + 2; x++) {
+                    let y = 0;
+                    while (canPlace(testPiece, x, y + 1)) {
+                        y++;
+                    }
+
+                    if (canPlace(testPiece, x, y)) {
+                        const score = calculatePlacementScore(testPiece, x, y);
+                        positions.push({
+                            x: x,
+                            y: y,
+                            rotation: rotation,
+                            shape: testPiece.shape.map(row => [...row]),
+                            score: score
+                        });
+                    }
+                }
+                testPiece.shape = rotatePieceShape(testPiece.shape);
+            }
+
+            // Sort by score and pick from the lower half
+            positions.sort((a, b) => a.score - b.score);
+            const suboptimalIndex = Math.floor(Math.random() * Math.min(positions.length, Math.ceil(positions.length / 3)));
+            return positions[suboptimalIndex] || positions[0];
+        }
+
+        // Calculate score for a placement
+        function calculatePlacementScore(piece, x, y) {
+            // Simulate placement
+            const tempBoard = board.map(row => [...row]);
+
+            for (let py = 0; py < piece.shape.length; py++) {
+                for (let px = 0; px < piece.shape[py].length; px++) {
+                    if (piece.shape[py][px]) {
+                        const boardY = y + py;
+                        const boardX = x + px;
+                        if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+                            tempBoard[boardY][boardX] = piece.color;
+                        }
+                    }
+                }
+            }
+
+            // Count complete lines
+            let completeLines = 0;
+            for (let row = 0; row < BOARD_HEIGHT; row++) {
+                if (tempBoard[row].every(cell => cell !== null)) {
+                    completeLines++;
+                }
+            }
+
+            // Count holes (empty cells below filled cells)
+            let holes = 0;
+            for (let col = 0; col < BOARD_WIDTH; col++) {
+                let foundFilled = false;
+                for (let row = 0; row < BOARD_HEIGHT; row++) {
+                    if (tempBoard[row][col]) {
+                        foundFilled = true;
+                    } else if (foundFilled) {
+                        holes++;
+                    }
+                }
+            }
+
+            // Score: prioritize lines, penalize holes, reward lower placement
+            return completeLines * 1000 - holes * 100 + y * 10;
+        }
+
+        // Rotate piece shape clockwise
+        function rotatePieceShape(shape) {
+            const rows = shape.length;
+            const cols = shape[0].length;
+            const rotated = [];
+
+            for (let x = 0; x < cols; x++) {
+                rotated[x] = [];
+                for (let y = rows - 1; y >= 0; y--) {
+                    rotated[x][rows - 1 - y] = shape[y][x];
+                }
+            }
+
+            return rotated;
+        }
+
+        // Clear complete lines
+        function clearLines() {
+            let cleared = 0;
+
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell !== null)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(null));
+                    cleared++;
+                    y++; // Check same row again
+                }
+            }
+
+            if (cleared > 0) {
+                linesCleared += cleared;
+                score += cleared * cleared * 100;
+                updateStats();
+            }
+
+            return cleared;
+        }
+
+        // Check if game is over
+        function checkGameOver() {
+            // Check if any cell in top row is filled
+            return board[0].some(cell => cell !== null);
+        }
+
+        // Generate quiz question
+        function generateQuiz() {
+            const correctVerb = spanishVerbs[Math.floor(Math.random() * spanishVerbs.length)];
+
+            // Get 3 wrong answers
+            const wrongAnswers = [];
+            while (wrongAnswers.length < 3) {
+                const verb = spanishVerbs[Math.floor(Math.random() * spanishVerbs.length)];
+                if (verb.english !== correctVerb.english && !wrongAnswers.includes(verb.english)) {
+                    wrongAnswers.push(verb.english);
+                }
+            }
+
+            // Shuffle answers
+            const answers = [correctVerb.english, ...wrongAnswers];
+            for (let i = answers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [answers[i], answers[j]] = [answers[j], answers[i]];
+            }
+
+            correctIndex = answers.indexOf(correctVerb.english);
+
+            return {
+                spanish: correctVerb.spanish,
+                answers: answers,
+                correctIndex: correctIndex
+            };
+        }
+
+        // Display quiz
+        function displayQuiz(quiz) {
+            document.getElementById('spanish-verb').textContent = quiz.spanish;
+
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach((btn, i) => {
+                btn.querySelector('.answer-text').textContent = quiz.answers[i];
+                btn.disabled = false;
+                btn.className = 'answer-btn';
+            });
+
+            currentQuiz = quiz;
+        }
+
+        // Start timer
+        function startTimer() {
+            timeRemaining = currentTimeLimit;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeRemaining -= 0.1;
+                updateTimerDisplay();
+
+                if (timeRemaining <= 0) {
+                    handleTimeout();
+                }
+            }, 100);
+        }
+
+        // Update timer display
+        function updateTimerDisplay() {
+            const timerBar = document.getElementById('timer-bar');
+            const timeText = document.getElementById('time-remaining');
+
+            const percentage = (timeRemaining / currentTimeLimit) * 100;
+            timerBar.style.width = percentage + '%';
+            timeText.textContent = Math.max(0, timeRemaining).toFixed(1);
+
+            timerBar.classList.remove('warning', 'danger');
+            if (percentage < 30) {
+                timerBar.classList.add('danger');
+            } else if (percentage < 60) {
+                timerBar.classList.add('warning');
+            }
+        }
+
+        // Stop timer
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        // Handle timeout
+        function handleTimeout() {
+            stopTimer();
+            showFeedback('TIME OUT!', 'timeout');
+            handleAnswer(false);
+        }
+
+        // Handle answer selection
+        function handleAnswer(isCorrect) {
+            if (!waitingForAnswer) return;
+
+            waitingForAnswer = false;
+            totalAnswers++;
+
+            // Disable buttons
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => btn.disabled = true);
+
+            // Highlight correct answer
+            buttons[currentQuiz.correctIndex].classList.add('correct');
+
+            if (isCorrect) {
+                correctAnswers++;
+                const position = findOptimalPosition(currentPiece);
+                animatePiecePlacement(position);
+            } else {
+                const position = findSuboptimalPosition(currentPiece);
+                animatePiecePlacement(position);
+            }
+        }
+
+        // Animate piece placement
+        function animatePiecePlacement(position) {
+            currentPiece.shape = position.shape;
+            currentPiece.x = position.x;
+            currentPiece.y = position.y;
+
+            placePiece(currentPiece);
+            clearLines();
+            renderBoard();
+
+            // Check game over
+            if (checkGameOver()) {
+                endGame();
+                return;
+            }
+
+            // Next turn
+            turn++;
+            turnsUntilDecrease--;
+
+            // Check if time should decrease
+            if (turnsUntilDecrease <= 0) {
+                turnsUntilDecrease = turnsBeforeDecrease;
+                currentTimeLimit = Math.max(minimumTime, currentTimeLimit - timeDecreaseAmount);
+            }
+
+            updateStats();
+
+            // Start next turn after brief delay
+            setTimeout(() => {
+                startNewTurn();
+            }, 500);
+        }
+
+        // Show feedback
+        function showFeedback(text, type) {
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = text;
+            feedback.className = 'feedback show ' + type;
+
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 1000);
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('lines').textContent = linesCleared;
+            document.getElementById('correct').textContent = correctAnswers;
+            document.getElementById('turn').textContent = turn;
+            document.getElementById('current-time-limit').textContent = currentTimeLimit.toFixed(1);
+            document.getElementById('turns-until-decrease').textContent = turnsUntilDecrease;
+        }
+
+        // Render next piece preview
+        function renderNextPiece() {
+            const container = document.getElementById('next-piece');
+            container.innerHTML = '';
+
+            for (let y = 0; y < 4; y++) {
+                for (let x = 0; x < 4; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'next-cell';
+
+                    if (nextPiece) {
+                        const pieceY = y - Math.floor((4 - nextPiece.shape.length) / 2);
+                        const pieceX = x - Math.floor((4 - nextPiece.shape[0].length) / 2);
+
+                        if (pieceY >= 0 && pieceY < nextPiece.shape.length &&
+                            pieceX >= 0 && pieceX < nextPiece.shape[0].length &&
+                            nextPiece.shape[pieceY][pieceX]) {
+                            cell.classList.add('filled', nextPiece.color);
+                        }
+                    }
+
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // Start a new turn
+        function startNewTurn() {
+            currentPiece = nextPiece || createPiece(getRandomPieceType());
+            nextPiece = createPiece(getRandomPieceType());
+
+            renderNextPiece();
+            renderBoard();
+
+            // Generate and display quiz
+            const quiz = generateQuiz();
+            displayQuiz(quiz);
+
+            waitingForAnswer = true;
+            startTimer();
+        }
+
+        // End game
+        function endGame() {
+            gameOver = true;
+            stopTimer();
+
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-lines').textContent = linesCleared;
+            document.getElementById('final-correct').textContent = correctAnswers;
+
+            const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+            document.getElementById('final-accuracy').textContent = accuracy + '%';
+
+            document.getElementById('game-over-overlay').style.display = 'flex';
+        }
+
+        // Start game
+        function startGame() {
+            // Get settings
+            startingTime = parseFloat(document.getElementById('start-time').value) || 10;
+            turnsBeforeDecrease = parseInt(document.getElementById('turns-decrease').value) || 10;
+            timeDecreaseAmount = parseFloat(document.getElementById('time-decrease').value) || 1;
+            minimumTime = parseFloat(document.getElementById('min-time').value) || 3;
+
+            // Reset game state
+            currentTimeLimit = startingTime;
+            turnsUntilDecrease = turnsBeforeDecrease;
+            score = 0;
+            linesCleared = 0;
+            correctAnswers = 0;
+            totalAnswers = 0;
+            turn = 1;
+            gameOver = false;
+            currentPiece = null;
+            nextPiece = null;
+
+            // Hide overlays
+            document.getElementById('start-overlay').style.display = 'none';
+            document.getElementById('game-over-overlay').style.display = 'none';
+
+            // Initialize
+            initBoard();
+            updateStats();
+            startNewTurn();
+        }
+
+        // Event listeners
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            document.getElementById('game-over-overlay').style.display = 'none';
+            document.getElementById('start-overlay').style.display = 'flex';
+        });
+
+        // Answer button clicks
+        document.querySelectorAll('.answer-btn').forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                if (!waitingForAnswer || gameOver) return;
+
+                stopTimer();
+                const isCorrect = index === currentQuiz.correctIndex;
+
+                if (isCorrect) {
+                    btn.classList.add('correct');
+                    showFeedback('CORRECT!', 'correct');
+                } else {
+                    btn.classList.add('incorrect');
+                    showFeedback('WRONG!', 'incorrect');
+                }
+
+                handleAnswer(isCorrect);
+            });
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!waitingForAnswer || gameOver) return;
+
+            const key = e.key;
+            if (key >= '1' && key <= '4') {
+                const index = parseInt(key) - 1;
+                document.querySelectorAll('.answer-btn')[index].click();
+            }
+        });
+
+        // Initialize next piece preview
+        renderNextPiece();
+    </script>
+</body>
+</html>
