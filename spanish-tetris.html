@@ -1112,54 +1112,17 @@
             isAnimating = true;
             const optimal = findOptimalPosition(currentPiece);
 
-            // Animate rotation and horizontal movement
-            const steps = [];
-            let tempShape = currentPiece.shape.map(row => [...row]);
-            let tempX = currentPiece.x;
+            // Move piece to top and set optimal shape/position
+            currentPiece.shape = optimal.shape;
+            currentPiece.x = optimal.x;
+            currentPiece.y = 0;
 
-            // Find rotation steps needed
-            for (let r = 0; r < 4; r++) {
-                if (JSON.stringify(tempShape) === JSON.stringify(optimal.shape)) {
-                    break;
-                }
-                tempShape = rotatePieceShape(tempShape);
-                steps.push({ type: 'rotate' });
-            }
+            render();
 
-            // Calculate horizontal movement
-            const xDiff = optimal.x - currentPiece.x;
-            for (let i = 0; i < Math.abs(xDiff); i++) {
-                steps.push({ type: 'move', dir: xDiff > 0 ? 1 : -1 });
-            }
-
-            let stepIndex = 0;
-
-            function doStep() {
-                if (stepIndex >= steps.length) {
-                    // All moves done, now hard drop
-                    hardDropPiece(true);
-                    return;
-                }
-
-                const step = steps[stepIndex];
-                if (step.type === 'rotate') {
-                    const newShape = rotatePieceShape(currentPiece.shape);
-                    if (canPlaceShape(newShape, currentPiece.x, currentPiece.y)) {
-                        currentPiece.shape = newShape;
-                    }
-                } else if (step.type === 'move') {
-                    const newX = currentPiece.x + step.dir;
-                    if (canPlaceShape(currentPiece.shape, newX, currentPiece.y)) {
-                        currentPiece.x = newX;
-                    }
-                }
-
-                render();
-                stepIndex++;
-                setTimeout(doStep, 50);
-            }
-
-            doStep();
+            // Now hard drop from optimal position
+            setTimeout(() => {
+                hardDropPiece(true);
+            }, 100);
         }
 
         // Hard drop the piece
