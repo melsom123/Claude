@@ -162,14 +162,14 @@
         }
 
         .answers {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             margin-top: 15px;
         }
 
         .answer-btn {
-            padding: 15px 10px;
+            padding: 12px 15px;
             font-size: 16px;
             border: none;
             border-radius: 10px;
@@ -177,6 +177,9 @@
             transition: all 0.2s;
             font-weight: bold;
             text-transform: capitalize;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .answer-btn:nth-child(1) {
@@ -236,9 +239,9 @@
         }
 
         .key-hint {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 3px;
+            font-size: 12px;
+            opacity: 0.8;
+            margin-left: 10px;
         }
 
         .next-piece {
@@ -556,19 +559,19 @@
                 <div class="answers" id="answers">
                     <button class="answer-btn" data-index="0">
                         <span class="answer-text">to speak</span>
-                        <div class="key-hint">Press 1</div>
+                        <span class="key-hint">[1]</span>
                     </button>
                     <button class="answer-btn" data-index="1">
                         <span class="answer-text">to eat</span>
-                        <div class="key-hint">Press 2</div>
+                        <span class="key-hint">[2]</span>
                     </button>
                     <button class="answer-btn" data-index="2">
                         <span class="answer-text">to run</span>
-                        <div class="key-hint">Press 3</div>
+                        <span class="key-hint">[3]</span>
                     </button>
                     <button class="answer-btn" data-index="3">
                         <span class="answer-text">to sleep</span>
-                        <div class="key-hint">Press 4</div>
+                        <span class="key-hint">[4]</span>
                     </button>
                 </div>
             </div>
@@ -1021,10 +1024,15 @@
 
         // Start timer
         function startTimer() {
+            stopTimer(); // Clear any existing timer first
             timeRemaining = currentTimeLimit;
             updateTimerDisplay();
 
             timerInterval = setInterval(() => {
+                if (gameOver || !waitingForAnswer) {
+                    stopTimer();
+                    return;
+                }
                 timeRemaining -= 0.1;
                 updateTimerDisplay();
 
@@ -1090,38 +1098,86 @@
             }
         }
 
-        // Animate piece placement
+        // Animate piece placement with falling animation
         function animatePiecePlacement(position) {
             currentPiece.shape = position.shape;
             currentPiece.x = position.x;
-            currentPiece.y = position.y;
+            currentPiece.y = 0;
 
-            placePiece(currentPiece);
-            clearLines();
-            renderBoard();
+            const targetY = position.y;
+            const fallSpeed = 50; // milliseconds per row
 
-            // Check game over
-            if (checkGameOver()) {
-                endGame();
-                return;
+            function animateFall() {
+                if (currentPiece.y < targetY) {
+                    currentPiece.y++;
+                    renderBoardWithPiece();
+                    setTimeout(animateFall, fallSpeed);
+                } else {
+                    // Piece has landed
+                    placePiece(currentPiece);
+                    clearLines();
+                    renderBoard();
+
+                    // Check game over
+                    if (checkGameOver()) {
+                        endGame();
+                        return;
+                    }
+
+                    // Next turn
+                    turn++;
+                    turnsUntilDecrease--;
+
+                    // Check if time should decrease
+                    if (turnsUntilDecrease <= 0) {
+                        turnsUntilDecrease = turnsBeforeDecrease;
+                        currentTimeLimit = Math.max(minimumTime, currentTimeLimit - timeDecreaseAmount);
+                    }
+
+                    updateStats();
+
+                    // Start next turn after brief delay
+                    setTimeout(() => {
+                        startNewTurn();
+                    }, 300);
+                }
             }
 
-            // Next turn
-            turn++;
-            turnsUntilDecrease--;
+            animateFall();
+        }
 
-            // Check if time should decrease
-            if (turnsUntilDecrease <= 0) {
-                turnsUntilDecrease = turnsBeforeDecrease;
-                currentTimeLimit = Math.max(minimumTime, currentTimeLimit - timeDecreaseAmount);
+        // Render board with current falling piece
+        function renderBoardWithPiece() {
+            const boardEl = document.getElementById('game-board');
+            boardEl.innerHTML = '';
+
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (board[y][x]) {
+                        cell.classList.add('filled', board[y][x]);
+                    }
+                    boardEl.appendChild(cell);
+                }
             }
 
-            updateStats();
-
-            // Start next turn after brief delay
-            setTimeout(() => {
-                startNewTurn();
-            }, 500);
+            // Render falling piece
+            if (currentPiece) {
+                const cells = boardEl.querySelectorAll('.cell');
+                for (let py = 0; py < currentPiece.shape.length; py++) {
+                    for (let px = 0; px < currentPiece.shape[py].length; px++) {
+                        if (currentPiece.shape[py][px]) {
+                            const boardY = currentPiece.y + py;
+                            const boardX = currentPiece.x + px;
+                            if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+                                const index = boardY * BOARD_WIDTH + boardX;
+                                cells[index].classList.add('filled', currentPiece.color);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Show feedback
